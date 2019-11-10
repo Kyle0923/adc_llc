@@ -33,10 +33,12 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
     }
 
     int status = 0;
-    status |= setLeftDutyCycle( rpmToDutyCylce(leftRpm) );
-    status |= setRightDutyCycle( rpmToDutyCylce(rightRpm) );
-    ROS_INFO("LEFT Duty Cycle:%f", rpmToDutyCylce(leftRpm));
-    ROS_INFO("RIGHT Duty Cycle:%f", rpmToDutyCylce(rightRpm));
+    const double leftDutyCycle = rpmToDutyCylce(leftRpm);
+    const double rightDutyCycle = rpmToDutyCylce(rightRpm);
+    status |= setLeftDutyCycle(leftDutyCycle);
+    status |= setRightDutyCycle(rightDutyCycle);
+    ROS_INFO("LEFT Duty Cycle:%f", leftDutyCycle);
+    ROS_INFO("RIGHT Duty Cycle:%f", rightDutyCycle);
     if (status == 0)
     {
         const double wL = leftRpm * 2.0 * PI / 60.0;
@@ -69,23 +71,21 @@ double WheelSpeedController::rpmToDutyCylce(const double rpm)
     const double wheelVoltage = std::abs(rpm) / 30.0 + 1.0 / 3.0;
     if (rpm >= 0)
     {
-        return wheelVoltage * VOLTAGE_MAX;
+        return wheelVoltage / VOLTAGE_MAX;
     }
     else
     {
-        return (-1.0) * wheelVoltage * VOLTAGE_MAX;
+        return (-1.0) * wheelVoltage / VOLTAGE_MAX;
     }
 }
 
 int WheelSpeedController::setLeftPwm(uint32_t aPwm)
 {
-    ROS_INFO("L PWM:[%u]", aPwm);
     return hardware_PWM(mPiHandle, PWM_LEFT, PWM_FREQ, aPwm);
 }
 
 int WheelSpeedController::setRightPwm(uint32_t aPwm)
 {
-    ROS_INFO("L PWM:[%u]", aPwm);
     return hardware_PWM(mPiHandle, PWR_RIGHT, PWM_FREQ, aPwm);
 }
 
@@ -159,5 +159,11 @@ WheelSpeedController::WheelSpeedController()
 
 WheelSpeedController::~WheelSpeedController()
 {
+    setLeftPwm(0);
+    setRightPwm(0);
+    gpio_write(mPiHandle, LOGIC_IN_1, 0);
+    gpio_write(mPiHandle, LOGIC_IN_2, 0);
+    gpio_write(mPiHandle, LOGIC_IN_3, 0);
+    gpio_write(mPiHandle, LOGIC_IN_4, 0);
     pigpio_stop(mPiHandle);
 }
