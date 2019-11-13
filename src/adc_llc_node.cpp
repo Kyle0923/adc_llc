@@ -9,17 +9,29 @@
 #include <stdexcept>
 #include "adc_llc.hpp"
 
+#define TF_PUBLISHER true
+
 RobotSpeeds robotSpeeds {0, 0};
+bool resetFlag = false;
 
 void callback(const geometry_msgs::Twist& cmd_vel)
 {
     static WheelSpeedController controller;
-    ROS_INFO("Received a /cmd_vel message!, v=[%f], w=[%f]", cmd_vel.linear.x, cmd_vel.angular.z);
 
+    if (-1 == cmd_vel.linear.x && -1 == cmd_vel.linear.y && -1 == cmd_vel.linear.z && \
+        -1 == cmd_vel.angular.x && -1 == cmd_vel.angular.y && -1 == cmd_vel.angular.z)
+    {
+        // special message, reset base_link to origin
+        ROS_INFO("Received a /cmd_vel message with all value == -1!, resetting base_link tf");
+        resetFlag = true;
+        return;
+    }
+    ROS_INFO("Received a /cmd_vel message!, v=[%f], w=[%f]", cmd_vel.linear.x, cmd_vel.angular.z);
     robotSpeeds = controller.setWheelSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
 }
 
 static void updateCoord(double& x, double& y, double& theta, const double v, const double w, const double dt);
+static void resetCoord(double& x, double& y, double& theta);
 
 int main(int argc, char** argv)
 {
@@ -35,6 +47,8 @@ int main(int argc, char** argv)
 
     ros::NodeHandle rosNode;
     ros::Subscriber sub = rosNode.subscribe("/cmd_vel", 1000, callback);
+
+#if TF_PUBLISHER
 
     ros::Publisher odom_pub = rosNode.advertise<nav_msgs::Odometry>("odom", 50);
     tf::TransformBroadcaster odom_broadcaster;
@@ -67,8 +81,15 @@ int main(int argc, char** argv)
         y += delta_y;
         th += delta_th;
         */
-        double dt = (current_time - last_time).toSec();
-        updateCoord(x, y, theta, robotSpeeds.v, robotSpeeds.w, dt);
+        if (!resetFlag)
+        {
+            double dt = (current_time - last_time).toSec();
+            updateCoord(x, y, theta, robotSpeeds.v, robotSpeeds.w, dt);
+        }
+        else
+        {
+            resetCoord(x, y, theta);
+        }
 
         geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 
@@ -86,32 +107,35 @@ int main(int argc, char** argv)
         //send the transform
         odom_broadcaster.sendTransform(odom_trans);
 
-#if 0
-        //next, we'll publish the odometry message over ROS
-        nav_msgs::Odometry odom;
-        odom.header.stamp = current_time;
-        odom.header.frame_id = "odom";
+        // //next, we'll publish the odometry message over ROS
+        // nav_msgs::Odometry odom;
+        // odom.header.stamp = current_time;
+        // odom.header.frame_id = "odom";
 
-        //set the position
-        odom.pose.pose.position.x = x;
-        odom.pose.pose.position.y = y;
-        odom.pose.pose.position.z = 0.0;
-        odom.pose.pose.orientation = odom_quat;
+        // //set the position
+        // odom.pose.pose.position.x = x;
+        // odom.pose.pose.position.y = y;
+        // odom.pose.pose.position.z = 0.0;
+        // odom.pose.pose.orientation = odom_quat;
 
-        //set the velocity
-        odom.child_frame_id = "base_link";
-        odom.twist.twist.linear.x = robotSpeeds.v;
-        odom.twist.twist.angular.z = robotSpeeds.w;
+        // //set the velocity
+        // odom.child_frame_id = "base_link";
+        // odom.twist.twist.linear.x = robotSpeeds.v;
+        // odom.twist.twist.angular.z = robotSpeeds.w;
 
-        //publish the message
-        odom_pub.publish(odom);
-#endif
+        // //publish the message
+        // odom_pub.publish(odom);
+
         last_time = current_time;
 
         loop_rate.sleep();
     }
 
-    return 1;
+#else
+    ros::spin();
+#endif
+
+    return 0;
 }
 
 static void updateCoord(double& x, double& y, double& theta, const double v, const double w, const double dt)
@@ -121,4 +145,12 @@ static void updateCoord(double& x, double& y, double& theta, const double v, con
     x += VelWorldX * dt;
     y += VelWorldY * dt;
     theta += w * dt;
+}
+
+static void resetCoord(double& x, double& y, double& theta)
+{
+    x = 0;
+    y = 0;
+    theta = 0;
+    resetFlag = false;
 }

@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "adc_llc.hpp"
 
-#define SCALING_ENABLE false
+#define SCALING_ENABLE true
 
 RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
 {
@@ -100,13 +100,13 @@ int WheelSpeedController::setLeftDutyCycle(const double aDutyCycle)
 {
     if (aDutyCycle > 0)
     {
-        gpio_write(mPiHandle, LOGIC_IN_1, 1);
-        gpio_write(mPiHandle, LOGIC_IN_2, 0);
+        gpio_write(mPiHandle, LOGIC_IN_1, 0);
+        gpio_write(mPiHandle, LOGIC_IN_2, 1);
     }
     else if (aDutyCycle < 0)
     {
-        gpio_write(mPiHandle, LOGIC_IN_1, 0);
-        gpio_write(mPiHandle, LOGIC_IN_2, 1);
+        gpio_write(mPiHandle, LOGIC_IN_1, 1);
+        gpio_write(mPiHandle, LOGIC_IN_2, 0);
     }
     else //aDutyCycle = 0
     {
@@ -120,13 +120,13 @@ int WheelSpeedController::setRightDutyCycle(const double aDutyCycle)
 {
     if (aDutyCycle > 0)
     {
-        gpio_write(mPiHandle, LOGIC_IN_3, 1);
-        gpio_write(mPiHandle, LOGIC_IN_4, 0);
+        gpio_write(mPiHandle, LOGIC_IN_3, 0);
+        gpio_write(mPiHandle, LOGIC_IN_4, 1);
     }
     else if (aDutyCycle < 0)
     {
-        gpio_write(mPiHandle, LOGIC_IN_3, 0);
-        gpio_write(mPiHandle, LOGIC_IN_4, 1);
+        gpio_write(mPiHandle, LOGIC_IN_3, 1);
+        gpio_write(mPiHandle, LOGIC_IN_4, 0);
     }
     else //aDutyCycle = 0
     {
