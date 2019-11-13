@@ -23,6 +23,7 @@ constexpr unsigned LOGIC_IN_4 = 26;  // pin 37
 constexpr unsigned PWM_FREQ = 10000000;    //10M Hz
 
 uint32_t PWM_VALUE = 100000;  // 60000~1000000, 1M
+uint32_t PWM_MAX = 10000;  // 60000~1000000, 1M
 
 static int piHandle = -1;
 
@@ -139,11 +140,13 @@ int main (void)
             cin >> PWM_VALUE;
             if (input == "L")
             {
-                hardware_PWM(piHandle, PWM_LEFT, PWM_FREQ, PWM_VALUE);
+                hardware_PWM(piHandle, PWM_LEFT, PWM_FREQ, PWM_VALUE * PWM_MAX);
+                cout << "LEFT PWM value: " << PWM_VALUE * PWM_MAX << endl;
             }
             else if (input == "R")
             {
-                hardware_PWM(piHandle, PWR_RIGHT, PWM_FREQ, PWM_VALUE);
+                hardware_PWM(piHandle, PWR_RIGHT, PWM_FREQ, PWM_VALUE * PWM_MAX);
+                cout << "ROGHT PWM value: " << PWM_VALUE * PWM_MAX << endl;
             }
         }
         else
