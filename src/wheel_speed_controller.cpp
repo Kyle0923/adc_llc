@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include "adc_llc.hpp"
 
+#define SCALING_ENABLE false
+
 RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
 {
     if (v == 0 && w == 0)
@@ -15,6 +17,9 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
 
     double leftRpm = getLeftWheelRpm(v, w);
     double rightRpm = getRightWheelRpm(v, w);
+
+#if SCALING_ENABLE
+
     double leftRpmAbs = std::abs(leftRpm);
     double rightRpmAbs = std::abs(rightRpm);
 
@@ -31,6 +36,8 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
         leftRpm *= scalingFactor;
         rightRpm *= scalingFactor;
     }
+
+#endif
 
     int status = 0;
     const double leftDutyCycle = rpmToDutyCylce(leftRpm);
