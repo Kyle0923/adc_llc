@@ -24,26 +24,34 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
     double rightRpmAbs = std::abs(rightRpm);
 
     //scale up or down accordingly
-    if (leftRpmAbs < RPM_MIN || rightRpmAbs < RPM_MIN)
+    if (leftRpmAbs < LEFT_RPM_AT_6_VOLT || rightRpmAbs < RIGHT_RPM_AT_6_VOLT)
     {
-        const double scalingFactor = RPM_MIN / std::min(leftRpmAbs, rightRpmAbs);
-        leftRpm *= scalingFactor;
-        rightRpm *= scalingFactor;
+        const double leftScalingFactor = LEFT_RPM_AT_6_VOLT / leftRpmAbs;
+        const double rightScalingFactor = RIGHT_RPM_AT_6_VOLT / rightRpmAbs;
+        leftRpm *= std::max(leftScalingFactor, rightScalingFactor);
+        rightRpm *= std::max(leftScalingFactor, rightScalingFactor);
     }
-    else if (leftRpmAbs > RPM_MAX || rightRpmAbs > RPM_MAX)
+    else if (leftRpmAbs > LEFT_RPM_AT_12_VOLT || rightRpmAbs > RIGHT_RPM_AT_12_VOLT)
     {
-        const double scalingFactor = RPM_MAX / std::max(leftRpmAbs, rightRpmAbs);
-        leftRpm *= scalingFactor;
-        rightRpm *= scalingFactor;
+        const double leftScalingFactor = LEFT_RPM_AT_12_VOLT / leftRpmAbs
+        const double rightScalingFactor = RIGHT_RPM_AT_12_VOLT / rightRpmAbs
+        leftRpm *= std::min(leftScalingFactor, rightScalingFactor);
+        rightRpm *= std::min(leftScalingFactor, rightScalingFactor);
     }
 
 #endif
 
     int status = 0;
-    const double leftDutyCycle = rpmToDutyCylce(leftRpm);
-    const double rightDutyCycle = rpmToDutyCylce(rightRpm);
-    status |= setLeftDutyCycle(leftDutyCycle);
-    status |= setRightDutyCycle(rightDutyCycle);
+    const double leftDutyCycle = rpmToDutyCylce(leftRpm, \
+                                                getRpmToVoltGradient(LEFT_RPM_AT_6_VOLT, LEFT_RPM_AT_12_VOLT), \
+                                                getRpmToVoltBias(LEFT_RPM_AT_6_VOLT, LEFT_RPM_AT_12_VOLT));
+    const double rightDutyCycle = rpmToDutyCylce(rightRpm, \
+                                                getRpmToVoltGradient(RIGHT_RPM_AT_6_VOLT, RIGHT_RPM_AT_12_VOLT), \
+                                                getRpmToVoltBias(RIGHT_RPM_AT_6_VOLT, RIGHT_RPM_AT_12_VOLT));
+    // status |= setLeftDutyCycle(leftDutyCycle);
+    // status |= setRightDutyCycle(rightDutyCycle);
+    status |= setLeftDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
+    status |= setRightDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
     ROS_INFO("LEFT Duty Cycle:%f", leftDutyCycle);
     ROS_INFO("RIGHT Duty Cycle:%f", rightDutyCycle);
     if (status == 0)
@@ -73,9 +81,9 @@ double WheelSpeedController::getRightWheelRpm(const double v, const double w)
     return 60.0 * angularSpeed / (2.0 * PI);
 }
 
-double WheelSpeedController::rpmToDutyCylce(const double rpm)
+double WheelSpeedController::rpmToDutyCylce(const double rpm, const double gradient, const double bias)
 {
-    const double wheelVoltage = std::abs(rpm) / 30.0 + 1.0 / 3.0;
+    const double wheelVoltage = std::abs(rpm) * gradient + bias;
     if (rpm >= 0)
     {
         return wheelVoltage / VOLTAGE_MAX;
@@ -84,6 +92,16 @@ double WheelSpeedController::rpmToDutyCylce(const double rpm)
     {
         return (-1.0) * wheelVoltage / VOLTAGE_MAX;
     }
+}
+
+constexpr double WheelSpeedController::getRpmToVoltGradient(const double rpmAt6V, const double rpmAt12V)
+{
+    return (6.0 / (rpmAt12V - rpmAt6V));
+}
+
+constexpr double WheelSpeedController::getRpmToVoltBias(const double rpmAt6V, const double rpmAt12V)
+{
+    return (12 - (6 * rpmAt12V) / (rpmAt12V - rpmAt6V));
 }
 
 int WheelSpeedController::setLeftPwm(uint32_t aPwm)

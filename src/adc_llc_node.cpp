@@ -50,13 +50,13 @@ int main(int argc, char** argv)
 
 #if TF_PUBLISHER
 
-    ros::Publisher odom_pub = rosNode.advertise<nav_msgs::Odometry>("odom", 50);
+    // ros::Publisher odom_pub = rosNode.advertise<nav_msgs::Odometry>("odom", 50);
     tf::TransformBroadcaster odom_broadcaster;
 
     // coordinates
-    double x = 0;
-    double y = 0;
-    double theta = 0;
+    double x = 0.0;
+    double y = 0.0;
+    double theta = 0.0;
 
     // time util
     ros::Time current_time, last_time;
