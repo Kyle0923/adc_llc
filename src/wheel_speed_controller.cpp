@@ -33,8 +33,8 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
     }
     else if (leftRpmAbs > LEFT_RPM_AT_12_VOLT || rightRpmAbs > RIGHT_RPM_AT_12_VOLT)
     {
-        const double leftScalingFactor = LEFT_RPM_AT_12_VOLT / leftRpmAbs
-        const double rightScalingFactor = RIGHT_RPM_AT_12_VOLT / rightRpmAbs
+        const double leftScalingFactor = LEFT_RPM_AT_12_VOLT / leftRpmAbs;
+        const double rightScalingFactor = RIGHT_RPM_AT_12_VOLT / rightRpmAbs;
         leftRpm *= std::min(leftScalingFactor, rightScalingFactor);
         rightRpm *= std::min(leftScalingFactor, rightScalingFactor);
     }
