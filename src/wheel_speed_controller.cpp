@@ -156,7 +156,7 @@ int WheelSpeedController::setRightDutyCycle(const double aDutyCycle)
 
 uint32_t WheelSpeedController::dutyCycleToPwm(const double aDutyCycle)
 {
-    return static_cast<uint32_t>( std::floor(std::abs(aDutyCycle) / 100.0 * static_cast<double>(PWM_MAX_VALUE)) );
+    return static_cast<uint32_t>( std::floor(std::abs(aDutyCycle) * static_cast<double>(PWM_MAX_VALUE)) );
 }
 
 WheelSpeedController::WheelSpeedController() :
