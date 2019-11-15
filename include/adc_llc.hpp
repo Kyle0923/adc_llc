@@ -1,6 +1,8 @@
 #ifndef ADC_LLC_HPP
 #define ADC_LLC_HPP
 
+#include "pca9685_if.hpp"
+
 // PIN definition
 constexpr unsigned PWM_LEFT  = 12;   // PIN 32
 constexpr unsigned PWR_RIGHT = 13;   // PIN 33
@@ -37,11 +39,10 @@ class WheelSpeedController
         static constexpr double RIGHT_RPM_AT_12_VOLT = 350.0;//RPM
 
         static constexpr double PI = 3.14159265359;
-        static constexpr uint32_t PWM_DEFAULT_VALUE = 100000U;  // 10%
-        static constexpr uint32_t PWM_MAX_VALUE     = 1000000U; // 1M, 60000~1000000, 1M
-        static constexpr uint32_t PWM_FREQ = 10000000U;    //10M Hz
+        static constexpr uint32_t PWM_MAX_VALUE     = 4096U; // 0~4096
 
         int mPiHandle;
+        Pca9685IF mPca9685;
         int setLeftPwm(uint32_t aPwm);
         int setRightPwm(uint32_t aPwm);
         int setLeftDutyCycle(const double aDutyCycle);

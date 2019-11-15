@@ -26,17 +26,15 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
     //scale up or down accordingly
     if (leftRpmAbs < LEFT_RPM_AT_6_VOLT || rightRpmAbs < RIGHT_RPM_AT_6_VOLT)
     {
-        const double leftScalingFactor = LEFT_RPM_AT_6_VOLT / leftRpmAbs;
-        const double rightScalingFactor = RIGHT_RPM_AT_6_VOLT / rightRpmAbs;
-        leftRpm *= std::max(leftScalingFactor, rightScalingFactor);
-        rightRpm *= std::max(leftScalingFactor, rightScalingFactor);
+        const double scalingFactor = std::max(LEFT_RPM_AT_6_VOLT / leftRpmAbs, RIGHT_RPM_AT_6_VOLT / rightRpmAbs);
+        leftRpm *= scalingFactor;
+        rightRpm *= scalingFactor;
     }
     else if (leftRpmAbs > LEFT_RPM_AT_12_VOLT || rightRpmAbs > RIGHT_RPM_AT_12_VOLT)
     {
-        const double leftScalingFactor = LEFT_RPM_AT_12_VOLT / leftRpmAbs;
-        const double rightScalingFactor = RIGHT_RPM_AT_12_VOLT / rightRpmAbs;
-        leftRpm *= std::min(leftScalingFactor, rightScalingFactor);
-        rightRpm *= std::min(leftScalingFactor, rightScalingFactor);
+        const double scalingFactor = std::min(LEFT_RPM_AT_12_VOLT / leftRpmAbs, RIGHT_RPM_AT_12_VOLT / rightRpmAbs);
+        leftRpm *= scalingFactor;
+        rightRpm *= scalingFactor;
     }
 
 #endif
@@ -48,10 +46,12 @@ RobotSpeeds WheelSpeedController::setWheelSpeed(const double v, const double w)
     const double rightDutyCycle = rpmToDutyCylce(rightRpm, \
                                                 getRpmToVoltGradient(RIGHT_RPM_AT_6_VOLT, RIGHT_RPM_AT_12_VOLT), \
                                                 getRpmToVoltBias(RIGHT_RPM_AT_6_VOLT, RIGHT_RPM_AT_12_VOLT));
-    // status |= setLeftDutyCycle(leftDutyCycle);
-    // status |= setRightDutyCycle(rightDutyCycle);
-    status |= setLeftDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
-    status |= setRightDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
+    status |= setLeftDutyCycle(leftDutyCycle);
+    status |= setRightDutyCycle(rightDutyCycle);
+    ////////// debug only
+    // status |= setLeftDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
+    // status |= setRightDutyCycle(100 * rightDutyCycle / abs(rightDutyCycle));
+    //////////
     ROS_INFO("LEFT Duty Cycle:%f", leftDutyCycle);
     ROS_INFO("RIGHT Duty Cycle:%f", rightDutyCycle);
     if (status == 0)
@@ -106,12 +106,12 @@ constexpr double WheelSpeedController::getRpmToVoltBias(const double rpmAt6V, co
 
 int WheelSpeedController::setLeftPwm(uint32_t aPwm)
 {
-    return hardware_PWM(mPiHandle, PWM_LEFT, PWM_FREQ, aPwm);
+    return mPca9685.setLeftPwm(aPwm);
 }
 
 int WheelSpeedController::setRightPwm(uint32_t aPwm)
 {
-    return hardware_PWM(mPiHandle, PWR_RIGHT, PWM_FREQ, aPwm);
+    return mPca9685.setRightPwm(aPwm);
 }
 
 int WheelSpeedController::setLeftDutyCycle(const double aDutyCycle)
@@ -159,17 +159,16 @@ uint32_t WheelSpeedController::dutyCycleToPwm(const double aDutyCycle)
     return static_cast<uint32_t>( std::floor(std::abs(aDutyCycle) / 100.0 * static_cast<double>(PWM_MAX_VALUE)) );
 }
 
-WheelSpeedController::WheelSpeedController()
+WheelSpeedController::WheelSpeedController() :
+    mPiHandle(pigpio_start(nullptr, nullptr)), mPca9685(mPiHandle)
 {
-    mPiHandle = pigpio_start(nullptr, nullptr);
+    // mPiHandle = pigpio_start(nullptr, nullptr);
     if (mPiHandle < 0)
     {
         throw std::runtime_error("unable to start pigpio");
     }
 
     int setPinStatus = 0;
-    setPinStatus |= setLeftPwm(PWM_DEFAULT_VALUE);  // set PIN 32 as PWM output
-    setPinStatus |= setRightPwm(PWM_DEFAULT_VALUE); // set PIN 33 as PWM output
 
     setPinStatus |= set_mode(mPiHandle, LOGIC_IN_1, PI_OUTPUT);  // set PIN 35 as output
     setPinStatus |= set_mode(mPiHandle, LOGIC_IN_2, PI_OUTPUT);  // set PIN 37 as output
