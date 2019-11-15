@@ -1,29 +1,18 @@
 #include <iostream>
 #include <pigpiod_if2.h>
+#include "pca9685_if.hpp"
 
 using namespace std;
 
-/*******************************************
- * NOTE
-    pwmWrite(PWM_pin, value); 0 <= value < 1024
-    gpio_write(piHandle, PIN, 1/0);
-  >> gpio readall # show pin layout
-
- ******************************************/
-
 // PWM pins on RPI4
-constexpr unsigned PWM_LEFT  = 12;   // PIN 32
-constexpr unsigned PWR_RIGHT = 13;   // PIN 33
 
 constexpr unsigned LOGIC_IN_1 = 16;  // pin 36
 constexpr unsigned LOGIC_IN_2 = 20;  // pin 38
 constexpr unsigned LOGIC_IN_3 = 19;  // pin 35
 constexpr unsigned LOGIC_IN_4 = 26;  // pin 37
 
-constexpr unsigned PWM_FREQ = 10000000;    //10M Hz
-
-uint32_t PWM_VALUE = 100000;  // 60000~1000000, 1M
-uint32_t PWM_MAX = 10000;  // 60000~1000000, 1M
+uint32_t PWM_MAX = 4096;  // max
+double VOLT_MAX = 12; // volt
 
 static int piHandle = -1;
 
@@ -35,44 +24,40 @@ void stop()
     gpio_write(piHandle, LOGIC_IN_4, 0);
 }
 
-void turnLeft(uint32_t duration)
+void turnLeft(float duration)
 {
     gpio_write(piHandle, LOGIC_IN_1, 0);
     gpio_write(piHandle, LOGIC_IN_2, 1);
     gpio_write(piHandle, LOGIC_IN_3, 1);
     gpio_write(piHandle, LOGIC_IN_4, 0);
-    time_sleep(duration / 1000.0);
-    // stop();
+    time_sleep(duration);
 }
 
-void turnRight(uint32_t duration)
+void turnRight(float duration)
 {
     gpio_write(piHandle, LOGIC_IN_1, 1);
     gpio_write(piHandle, LOGIC_IN_2, 0);
     gpio_write(piHandle, LOGIC_IN_3, 0);
     gpio_write(piHandle, LOGIC_IN_4, 1);
-    time_sleep(duration / 1000.0);
-    // stop();
+    time_sleep(duration);
 }
 
-void forward(uint32_t duration)
+void forward(float duration)
 {
     gpio_write(piHandle, LOGIC_IN_1, 1);
     gpio_write(piHandle, LOGIC_IN_2, 0);
     gpio_write(piHandle, LOGIC_IN_3, 1);
     gpio_write(piHandle, LOGIC_IN_4, 0);
-    time_sleep(duration / 1000.0);
-    // stop();
+    time_sleep(duration);
 }
 
-void reverse(uint32_t duration)
+void reverse(float duration)
 {
     gpio_write(piHandle, LOGIC_IN_1, 0);
     gpio_write(piHandle, LOGIC_IN_2, 1);
     gpio_write(piHandle, LOGIC_IN_3, 0);
     gpio_write(piHandle, LOGIC_IN_4, 1);
-    time_sleep(duration / 1000.0);
-    // stop();
+    time_sleep(duration);
 }
 
 void exitFunction() {
@@ -84,13 +69,13 @@ int main (void)
     piHandle = pigpio_start(nullptr, nullptr);
     if (piHandle < 0)
     {
-        return 1;
+        return -1;
     }
     std::atexit(exitFunction);
 
+    Pca9685IF pca9685(piHandle);
+
     int setPinStatus = 0;
-    setPinStatus |= hardware_PWM(piHandle, PWM_LEFT, PWM_FREQ, PWM_VALUE);  // set PIN 12 as PWM output
-    setPinStatus |= hardware_PWM(piHandle, PWR_RIGHT, PWM_FREQ, PWM_VALUE); // set PIN 13 as PWM output
 
     setPinStatus |= set_mode(piHandle, LOGIC_IN_1, PI_OUTPUT);  // set PIN 35 as output
     setPinStatus |= set_mode(piHandle, LOGIC_IN_2, PI_OUTPUT);  // set PIN 37 as output
@@ -99,59 +84,84 @@ int main (void)
 
     if (setPinStatus != 0)
     {
-        return 2;
+        return -2;
     }
 
-    // pwmWrite(PWM_LEFT, PWM_VALUE);     /* provide PWM0 value for duty cycle */
-    // pwmWrite(PWR_RIGHT, PWM_VALUE);    /* provide PWM1 value for duty cycle */
+    float duration = 1;
 
     std::string input = "";
     while (1)
     {
+        stop();
         cout << "Waiting for input W-A-S-D" << endl;
         cin >> input;
         if (input == "a")
         {
             cout << "turnLeft" << endl;
-            turnLeft(500);
+            turnLeft(duration);
         }
         else if (input == "d")
         {
             cout << "turnRight" << endl;
-            turnRight(500);
+            turnRight(duration);
         }
         else if (input == "s")
         {
             cout << "reverse" << endl;
-            reverse(500);
+            reverse(duration);
         }
         else if (input == "w")
         {
             cout << "forward" << endl;
-            forward(500);
+            forward(duration);
         }
         else if (input == "q")
         {
             stop();
         }
+        else if (input == "exit")
+        {
+            stop();
+            break;
+        }
         else if (input == "config")
         {
             cin >> input;
-            cin >> PWM_VALUE;
+            double value;
+            cin >> value;
             if (input == "L")
             {
-                hardware_PWM(piHandle, PWM_LEFT, PWM_FREQ, PWM_VALUE * PWM_MAX);
-                cout << "LEFT PWM value: " << PWM_VALUE * PWM_MAX << endl;
+                // value == dutyCycle
+                value = value / 100;
+                pca9685.setLeftPwm(static_cast<uint8_t>(value * PWM_MAX));
+                cout << "LEFT PWM value: " << value * PWM_MAX << ", Voltage: " << value * VOLT_MAX << " V" << endl;
             }
             else if (input == "R")
             {
-                hardware_PWM(piHandle, PWR_RIGHT, PWM_FREQ, PWM_VALUE * PWM_MAX);
-                cout << "ROGHT PWM value: " << PWM_VALUE * PWM_MAX << endl;
+                // value == dutyCycle
+                value = value / 100;
+                pca9685.setRightPwm(static_cast<uint8_t>(value * PWM_MAX));
+                cout << "ROGHT PWM value: " << value * PWM_MAX << ", Voltage(V): " << value * VOLT_MAX << " V" << endl;
+            }
+            else if (input == "D")
+            {
+                duration = value;
+                cout << "Duration changed to: " << duration << " sec" << endl;
             }
         }
-        else
+        else if (input == "help" || input == "-h" || input == "--help")
         {
-            time_sleep(100);
+            cout << "============================== Usage ==============================" << endl;
+            cout << "W-A-S-D:\t\tDirection" << endl;
+            cout << "q:\t\t\tstop (both pwm to 0)" << endl;
+            cout << "config <flag> [num]:\tchange config corresponding to flag" << endl;
+            cout << "\t\t\tflag:" << endl;
+            cout << "\t\t\t     L: left wheel pwm duty cycle (percentage)" << endl;
+            cout << "\t\t\t     R: right wheel pwm duty cycle (percentage)" << endl;
+            cout << "\t\t\t     D: duration of movement in seconds" << endl;
+            cout << "reset:\t\t\treset base_link frame coordinate" << endl;
+            cout << "exit:\t\t\texit program" << endl;
+            continue;
         }
     }
     return 0;
