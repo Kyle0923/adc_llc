@@ -32,7 +32,9 @@ int Pca9685IF::setRightPwm(const uint32_t aPwm)
     return setPwm(aPwm, registerRight);
 }
 
-int Pca9685IF::setPwm(const uint32_t aPwm, const uint8_ttatus = 0;
+int Pca9685IF::setPwm(const uint32_t aPwm, const uint8_t aRegister)
+{
+    int status = 0;
     if (0U < aPwm && aPwm < 4096U)
     {
         status |= i2c_write_byte_data(mPiHandle, mI2CHandle, aRegister, 0U);
