@@ -3,15 +3,6 @@
 
 #include "pca9685_if.hpp"
 
-// PIN definition
-constexpr unsigned PWM_LEFT  = 12;   // PIN 32
-constexpr unsigned PWR_RIGHT = 13;   // PIN 33
-
-constexpr unsigned LOGIC_IN_1 = 16;  // pin 36
-constexpr unsigned LOGIC_IN_2 = 20;  // pin 38
-constexpr unsigned LOGIC_IN_3 = 19;  // pin 35
-constexpr unsigned LOGIC_IN_4 = 26;  // pin 37
-
 struct RobotSpeeds
 {
     double v;
@@ -31,12 +22,14 @@ class WheelSpeedController
     private:
         static constexpr double WHEEL_RADIUS   = 0.057; //m
         static constexpr double WHEEL_DISTANCE = 0.128; //m
-        static constexpr double VOLTAGE_MAX    = 12.0;  //Volt
 
-        static constexpr double LEFT_RPM_AT_6_VOLT = 170.0; //RPM
-        static constexpr double LEFT_RPM_AT_12_VOLT = 350.0; //RPM
-        static constexpr double RIGHT_RPM_AT_6_VOLT = 170.0; //RPM
-        static constexpr double RIGHT_RPM_AT_12_VOLT = 350.0;//RPM
+        static constexpr double VOLTAGE_MAX    = 11.0;  //Volt
+        static constexpr double VOLTAGE_MIN    = 7.0;  //Volt
+
+        static constexpr double LEFT_RPM_AT_VOLT_MIN  = 21.78; //RPM
+        static constexpr double LEFT_RPM_AT_VOLT_MAX  = 54.4; //RPM
+        static constexpr double RIGHT_RPM_AT_VOLT_MIN = 21.78; //RPM
+        static constexpr double RIGHT_RPM_AT_VOLT_MAX = 54.4;//RPM
 
         static constexpr double PI = 3.14159265359;
         static constexpr uint32_t PWM_MAX_VALUE     = 4096U; // 0~4096
@@ -51,8 +44,8 @@ class WheelSpeedController
         double getLeftWheelRpm(const double v, const double w);
         double getRightWheelRpm(const double v, const double w);
         double rpmToDutyCylce(const double rpm, const double gradient, const double bias);
-        constexpr double getRpmToVoltGradient(const double rpmAt6V, const double rpmAt12V);
-        constexpr double getRpmToVoltBias(const double rpmAt6V, const double rpmAt12V);
+        constexpr double getRpmToVoltGradient(const double rpmAtVmin, const double rpmAtVmax);
+        constexpr double getRpmToVoltBias(const double rpmAtVmin, const double rpmAtVmax);
 };
 
 #endif //ADC_LLC_HPP

@@ -13,7 +13,7 @@ static constexpr uint8_t PCA9685_MODE1    = 0x00;
 static constexpr uint8_t PCA9685_PRESCALE = 0xFE;
 static constexpr uint8_t PWM0_ON_L        = 0x06;
 static constexpr uint8_t PWMALL_ON_L      = 0xFA;
-static constexpr uint8_t PIN_ALL          = 16;
+static constexpr uint8_t PIN_ALL          = 16U;
 
 constexpr uint8_t Pca9685IF::pwmRegister(const uint8_t pin)
 {
@@ -22,13 +22,13 @@ constexpr uint8_t Pca9685IF::pwmRegister(const uint8_t pin)
 
 int Pca9685IF::setLeftPwm(const uint32_t aPwm)
 {
-    static constexpr uint8_t registerLeft = pwmRegister(0U);
+    static constexpr uint8_t registerLeft = pwmRegister(LEFT_PWM_PIN);
     return setPwm(aPwm, registerLeft);
 }
 
 int Pca9685IF::setRightPwm(const uint32_t aPwm)
 {
-    static constexpr uint8_t registerRight = pwmRegister(1U);
+    static constexpr uint8_t registerRight = pwmRegister(RIGHT_PWM_PIN);
     return setPwm(aPwm, registerRight);
 }
 
@@ -59,8 +59,43 @@ int Pca9685IF::setPwm(const uint32_t aPwm, const uint8_t aRegister)
     return status;
 }
 
+int Pca9685IF::setPinFullOn(const uint8_t pin)
+{
+    int status = 0;
+    const uint8_t lRegister = pwmRegister(pin);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister, 0U);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 1U, 0x10); //bit 4, full on
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 2U, 0U);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 3U, 0U);
+    return status;
+}
+
+int Pca9685IF::setPinFullOff(const uint8_t pin)
+{
+    int status = 0;
+    const uint8_t lRegister = pwmRegister(pin);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister, 0U);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 1U, 0U);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 2U, 0U);
+    status |= i2c_write_byte_data(mPiHandle, mI2CHandle, lRegister + 3U, 0x10); //bit 4, full off
+    return status;
+}
+
+int Pca9685IF::setDigital(const uint8_t pin, const uint8_t value)
+{
+    if (value == 0)
+    {
+        setPinFullOff(pin);
+    }
+    else
+    {
+        setPinFullOn(pin);
+    }
+}
+
 void Pca9685IF::initPca9685()
 {
+    setPinFullOff(PIN_ALL);
     // To set pwm frequency we have to set the prescale register. The formula is:
     // prescale = round(osc_clock / (4096 * frequency))) - 1 where osc_clock = 25 MHz
     // frequency = [24...1526]
