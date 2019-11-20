@@ -85,11 +85,11 @@ int Pca9685IF::setDigital(const uint8_t pin, const uint8_t value)
 {
     if (value == 0)
     {
-        setPinFullOff(pin);
+        return setPinFullOff(pin);
     }
     else
     {
-        setPinFullOn(pin);
+        return setPinFullOn(pin);
     }
 }
 

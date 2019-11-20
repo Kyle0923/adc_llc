@@ -86,11 +86,11 @@ double WheelSpeedController::rpmToDutyCylce(const double rpm, const double gradi
     const double wheelVoltage = std::abs(rpm) * gradient + bias;
     if (rpm >= 0)
     {
-        return wheelVoltage / VOLTAGE_MAX;
+        return wheelVoltage / BATTERY_VOLTAGE;
     }
     else
     {
-        return (-1.0) * wheelVoltage / VOLTAGE_MAX;
+        return (-1.0) * wheelVoltage / BATTERY_VOLTAGE;
     }
 }
 
@@ -175,3 +175,9 @@ WheelSpeedController::~WheelSpeedController()
     setRightPwm(0);
     pigpio_stop(mPiHandle);
 }
+
+void lm393Callback(int pi, unsigned user_gpio, unsigned level, uint32_t tick)
+{
+    ROS_INFO("received lm393 reading on PIN[%d], level[%d], tick[%d]", user_gpio, level, tick);
+}
+

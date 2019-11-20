@@ -2,6 +2,7 @@
 #define ADC_LLC_HPP
 
 #include "pca9685_if.hpp"
+#include "lm393_if.hpp"
 
 struct RobotSpeeds
 {
@@ -23,8 +24,9 @@ class WheelSpeedController
         static constexpr double WHEEL_RADIUS   = 0.057; //m
         static constexpr double WHEEL_DISTANCE = 0.128; //m
 
-        static constexpr double VOLTAGE_MAX    = 11.0;  //Volt
-        static constexpr double VOLTAGE_MIN    = 7.0;  //Volt
+        static constexpr double VOLTAGE_MAX    = 6.0;  //Volt
+        static constexpr double VOLTAGE_MIN    = 3.0;  //Volt
+        static constexpr double BATTERY_VOLTAGE = 8.0; //Volt
 
         static constexpr double LEFT_RPM_AT_VOLT_MIN  = 21.78; //RPM
         static constexpr double LEFT_RPM_AT_VOLT_MAX  = 54.4; //RPM
