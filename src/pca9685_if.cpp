@@ -130,5 +130,6 @@ Pca9685IF::Pca9685IF(const int piHandle) : mPiHandle(piHandle)
 
 Pca9685IF::~Pca9685IF()
 {
+    setPinFullOff(PIN_ALL);
     i2c_close(mPiHandle, mI2CHandle);
 }

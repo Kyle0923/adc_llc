@@ -11,12 +11,11 @@
 
 #define TF_PUBLISHER true
 
-RobotSpeeds robotSpeeds {0, 0};
 bool resetFlag = false;
+WheelSpeedController* pgAdcController = nullptr;
 
 void callback(const geometry_msgs::Twist& cmd_vel)
 {
-    static WheelSpeedController controller;
 
     if (-1 == cmd_vel.linear.x && -1 == cmd_vel.linear.y && -1 == cmd_vel.linear.z && \
         -1 == cmd_vel.angular.x && -1 == cmd_vel.angular.y && -1 == cmd_vel.angular.z)
@@ -27,15 +26,16 @@ void callback(const geometry_msgs::Twist& cmd_vel)
         return;
     }
     ROS_INFO("Received a /cmd_vel message!, v=[%f], w=[%f]", cmd_vel.linear.x, cmd_vel.angular.z);
-    robotSpeeds = controller.setWheelSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
+    pgAdcController->setWheelSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
 }
 
-static void updateCoord(double& x, double& y, double& theta, const double v, const double w, const double dt);
-static void resetCoord(double& x, double& y, double& theta);
+// static void updateCoord(double& x, double& y, double& theta, const double linearDisplacement, const double angularDisplacement);
+// static void resetCoord(double& x, double& y, double& theta);
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "adc_llc");
+    ros::NodeHandle rosNode;
 
     std::cout << "Initializing adc_llc node\n>> starting pigpio daemon..." << std::endl;
 
@@ -44,8 +44,11 @@ int main(int argc, char** argv)
     {
         throw std::runtime_error("pigpiod daemon failed to start.");
     }
+    ros::Duration(0.1).sleep();
 
-    ros::NodeHandle rosNode;
+    WheelSpeedController adcController;
+    pgAdcController = &adcController;
+
     ros::Subscriber sub = rosNode.subscribe("/cmd_vel", 1000, callback);
 
 #if TF_PUBLISHER
@@ -59,17 +62,14 @@ int main(int argc, char** argv)
     double theta = 0.0;
 
     // time util
-    ros::Time current_time, last_time;
-    current_time = ros::Time::now();
-    last_time = ros::Time::now();
+    ros::Time current_time;
 
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(100);
 
     while (ros::ok())
     {
         ros::spinOnce();
         current_time = ros::Time::now();
-
         // update x, y, theta
         /* just example
         double dt = (current_time - last_time).toSec();
@@ -83,12 +83,18 @@ int main(int argc, char** argv)
         */
         if (!resetFlag)
         {
-            double dt = (current_time - last_time).toSec();
-            updateCoord(x, y, theta, robotSpeeds.v, robotSpeeds.w, dt);
+            RobotDisplacement robotDisplacement = adcController.getRobotDisplacement();
+            x += robotDisplacement.linear * std::cos(theta);
+            y += robotDisplacement.linear * std::sin(theta);
+            theta += robotDisplacement.angular;
+            // updateCoord(x, y, theta, robotDisplacement.linear, robotDisplacement.angular);
         }
         else
         {
-            resetCoord(x, y, theta);
+            x = 0;
+            y = 0;
+            theta = 0;
+            resetFlag = false;
         }
 
         geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
@@ -126,8 +132,6 @@ int main(int argc, char** argv)
         // //publish the message
         // odom_pub.publish(odom);
 
-        last_time = current_time;
-
         loop_rate.sleep();
     }
 
@@ -138,19 +142,17 @@ int main(int argc, char** argv)
     return 0;
 }
 
-static void updateCoord(double& x, double& y, double& theta, const double v, const double w, const double dt)
-{
-    const double VelWorldX = v * std::cos(theta);
-    const double VelWorldY = v * std::sin(theta);
-    x += VelWorldX * dt;
-    y += VelWorldY * dt;
-    theta += w * dt;
-}
+// static void updateCoord(double& x, double& y, double& theta, const double linearDisplacement, const double angularDisplacement)
+// {
+//     x += linearDisplacement * std::cos(theta);
+//     y += linearDisplacement * std::sin(theta);
+//     theta += angularDisplacement;
+// }
 
-static void resetCoord(double& x, double& y, double& theta)
-{
-    x = 0;
-    y = 0;
-    theta = 0;
-    resetFlag = false;
-}
+// static void resetCoord(double& x, double& y, double& theta)
+// {
+//     x = 0;
+//     y = 0;
+//     theta = 0;
+//     resetFlag = false;
+// }
