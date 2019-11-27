@@ -21,7 +21,7 @@ class Pca9685IF
 
     private:
         int mPiHandle;
-        unsigned mI2CHandle;
+        int mI2CHandle;
         void initPca9685();
         static constexpr float PCA9685_FREQ = 500;
         static constexpr uint8_t pwmRegister(const uint8_t pin);

@@ -16,6 +16,7 @@ class Lm393IF
 
     private:
         static constexpr double READING_OF_FULL_REVOLUTION = 40.0;
+        const int mPiHandle;
         const unsigned mPin;
         uint32_t mReading;
         int mCallbackID;

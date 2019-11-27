@@ -86,7 +86,7 @@ int main(int argc, char** argv)
             RobotDisplacement robotDisplacement = adcController.getRobotDisplacement();
             x += robotDisplacement.linear * std::cos(theta);
             y += robotDisplacement.linear * std::sin(theta);
-            theta += robotDisplacement.angular;
+            theta = robotDisplacement.angular;  //directly read from gyro
             // updateCoord(x, y, theta, robotDisplacement.linear, robotDisplacement.angular);
         }
         else

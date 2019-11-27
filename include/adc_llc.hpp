@@ -3,6 +3,7 @@
 
 #include "pca9685_if.hpp"
 #include "lm393_if.hpp"
+#include "mpu6050_if.hpp"
 
 struct RobotDisplacement
 {
@@ -17,6 +18,8 @@ class WheelSpeedController
 
         RobotDisplacement getRobotDisplacement();
         void updateEncoder(const unsigned user_gpio);
+        void updateGyro(const uint32_t tick);
+        void disableGyro();
 
         WheelSpeedController();
         ~WheelSpeedController();
@@ -42,7 +45,7 @@ class WheelSpeedController
         static constexpr double PI = 3.14159265359;
         static constexpr uint32_t PWM_MAX_VALUE     = 4096U; // 0~4096
 
-        //ideal angular velocity, used when encoder data is not available
+        //ideal angular velocity
         double mWL;
         double mWR;
 
@@ -50,6 +53,7 @@ class WheelSpeedController
         Pca9685IF* mpPca9685;
         Lm393IF* mpLeftEncoder;
         Lm393IF* mpRightEncoder;
+        Mpu6050IF* mpMpu6050;
         int setLeftPwm(uint32_t aPwm);
         int setRightPwm(uint32_t aPwm);
         int setLeftDutyCycle(const double aDutyCycle);

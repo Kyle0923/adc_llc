@@ -82,7 +82,8 @@ RobotDisplacement WheelSpeedController::getRobotDisplacement()
     }
     const double bodyLinDisp = (angDispR + angDispL) * WHEEL_RADIUS / 2.0;
     //below, magic number 2.23, base on expriment that when dutyCycle = 1 & -1, rotation is about 2 rad, while reading only gives 0.93
-    const double bodyAngDisp = (angDispR - angDispL) * WHEEL_RADIUS / WHEEL_DISTANCE * 2.23;
+    // const double bodyAngDisp = (angDispR - angDispL) * WHEEL_RADIUS / WHEEL_DISTANCE * 2.23;
+    const double bodyAngDisp = mpMpu6050->getTheta();
     return RobotDisplacement{bodyLinDisp, bodyAngDisp};
 }
 
@@ -190,6 +191,16 @@ void WheelSpeedController::updateEncoder(const unsigned user_gpio)
     }
 }
 
+void WheelSpeedController::updateGyro(const uint32_t tick)
+{
+    mpMpu6050->updateTheta(tick);
+}
+
+void WheelSpeedController::disableGyro()
+{
+    mpMpu6050->disable();
+}
+
 WheelSpeedController::WheelSpeedController() :
     mPiHandle(pigpio_start(nullptr, nullptr))
 {
@@ -198,6 +209,7 @@ WheelSpeedController::WheelSpeedController() :
     {
         throw std::runtime_error("unable to start pigpio");
     }
+    mpMpu6050 = new Mpu6050IF(mPiHandle);
     mpPca9685 = new Pca9685IF(mPiHandle);
     mpLeftEncoder = new Lm393IF(mPiHandle, LEFT_ENCODER);
     mpRightEncoder = new Lm393IF(mPiHandle, RIGHT_ENCODER);
@@ -208,6 +220,7 @@ WheelSpeedController::~WheelSpeedController()
     delete mpRightEncoder;
     delete mpLeftEncoder;
     delete mpPca9685;
+    delete mpMpu6050;
     pigpio_stop(mPiHandle);
 }
 
@@ -217,6 +230,11 @@ void lm393Callback(int pi, unsigned user_gpio, unsigned level, uint32_t tick)
     {
         ROS_INFO("received lm393 reading on PIN[%d], level[%d], tick[%d]", user_gpio, level, tick);
         pgAdcController->updateEncoder(user_gpio);
+        pgAdcController->updateGyro(tick);
+    }
+    else
+    {
+        pgAdcController->disableGyro();
     }
 }
 
