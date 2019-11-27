@@ -82,7 +82,8 @@ RobotDisplacement WheelSpeedController::getRobotDisplacement()
     }
     const double bodyLinDisp = (angDispR + angDispL) * WHEEL_RADIUS / 2.0;
     //below, magic number 2.23, base on expriment that when dutyCycle = 1 & -1, rotation is about 2 rad, while reading only gives 0.93
-    const double bodyAngDisp = (angDispR - angDispL) * WHEEL_RADIUS / WHEEL_DISTANCE * 2.23;
+    // const double bodyAngDisp = (angDispR - angDispL) * WHEEL_RADIUS / WHEEL_DISTANCE * 2.23;
+    const double bodyAngDisp = (angDispR - angDispL) * WHEEL_RADIUS / WHEEL_DISTANCE;
     return RobotDisplacement{bodyLinDisp, bodyAngDisp};
 }
 
